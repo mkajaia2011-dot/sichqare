@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini-დან GitHub Pages-მდე — სრული გზამკვლევი</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --secondary: #0EA5E9;
+            --dark: #0F172A;
+            --card-bg: #1E293B;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --accent-green: #10B981;
+            --accent-orange: #F59E0B;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 320px;
+            background-color: #0B1120;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.25rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .progress-bar-container {
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 20%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            transition: width 0.3s ease;
+        }
+
+        .nav-steps {
+            list-style: none;
+            padding: 15px 10px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            background-color: var(--card-bg);
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+
+        .step-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .nav-item.active .step-num {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item.completed .step-num {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .step-info h4 {
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        .step-info span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Content Workspace */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background-color: var(--dark);
+        }
+
+        .content-header {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .content-body {
+            padding: 32px;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .step-card {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .step-card.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .step-description {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        /* Instruction Blocks */
+        .instruction-box {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .instruction-box h3 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .instruction-list {
+            padding-left: 20px;
+            color: var(--text-main);
+            line-height: 1.8;
+        }
+
+        .instruction-list li {
+            margin-bottom: 8px;
+        }
+
+        /* Code Block */
+        .code-container {
+            background-color: #090D16;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .code-header {
+            background-color: #161F30;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .copy-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+            color: #E2E8F0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Interactive Playground Component */
+        .demo-window {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+            color: #333;
+            margin-top: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .demo-bar {
+            background: #e2e8f0;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #cbd5e1;
+        }
+
+        .circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .circle-red { background: #ef4444; }
+        .circle-yellow { background: #f59e0b; }
+        .circle-green { background: #10b981; }
+
+        .demo-body {
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        /* Navigation Buttons at Bottom */
+        .controls {
+            margin-top: 32px;
+            display: flex;
+            justify-content: space-between;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: white;
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #2D3748;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Chemical App Preview Styles */
+        .chem-app {
+            font-family: sans-serif;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .chem-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #334155;
+        }
+
+        .sim-box {
+            height: 150px;
+            background: #0f172a;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #38bdf8;
+            transition: all 0.5s ease;
+        }
+
+        .tip-badge {
+            background: rgba(14, 165, 233, 0.15);
+            color: var(--secondary);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fa-solid fa-code-branch"></i> App Creator Guide</h2>
+            <p>Gemini AI + Antigravity + GitHub</p>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+
+        <ul class="nav-steps">
+            <li class="nav-item active" onclick="goToStep(1)">
+                <div class="step-num">1</div>
+                <div class="step-info">
+                    <h4>Antigravity & საქაღალდე</h4>
+                    <span>გადმოწერა და მომზადება</span>
+                </div>
+            </li>
+            <li class="nav-item" onclick="goToStep(2)">
+                <div class="step-num">2</div>
+                <div class="step-info">
+                    <h4>Gemini AI Prompts</h4>
+                    <span>კოდის დაგენერირება</span>
+                </div>
+            </li>
+            <li class="nav-item" onclick="goToStep(3)">
+                <div class="step-num">3</div>
+                <div class="step-info">
+                    <h4>კოდის გადატანა</h4>
+                    <span>Antigravity-ში შენახვა</span>
+                </div>
+            </li>
+            <li class="nav-item" onclick="goToStep(4)">
+                <div class="step-num">4</div>
+                <div class="step-info">
+                    <h4>GitHub-ზე დარეგისტრირება</h4>
+                    <span>ანგარიში და რეგისტრირება</span>
+                </div>
+            </li>
+            <li class="nav-item" onclick="goToStep(5)">
+                <div class="step-num">5</div>
+                <div class="step-info">
+                    <h4>GitHub Pages ატვირთვა</h4>
+                    <span>საიტის გასაჯაროება</span>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="content-header">
+            <span id="currentStepTitle" style="font-weight: 600; color: var(--text-muted);">ეტაპი 1/5</span>
+            <div class="tip-badge">
+                <i class="fa-solid fa-lightbulb"></i> მიჰყევით ინსტრუქციას ნაბიჯ-ნაბიჯ
+            </div>
+        </div>
+
+        <div class="content-body">
+
+            <!-- STEP 1 -->
+            <div class="step-card active" id="step1">
+                <h2><i class="fa-solid fa-download" style="color: var(--secondary);"></i> 1. Antigravity-ს ჩამოტვირთვა და საქაღალდის მომზადება</h2>
+                <p class="step-description">
+                    Antigravity (ან VS Code / IDE) არის კოდის მართვისა და რედაქტირების თანამედროვე გარემო. სანამ კოდის წერას დავიწყებთ, მოვაწესრიგოთ სამუშაო სივრცე.
+                </p>
+
+                <div class="instruction-box">
+                    <h3><i class="fa-solid fa-list-check"></i> ნაბიჯ-ნაბიჯ ინსტრუქცია:</h3>
+                    <ol class="instruction-list">
+                        <li><strong>Antigravity / VS Code-ის გადმოწერა:</strong> გადადით ოფიციალურ საიტზე და გადმოწერეთ ინსტალატორი Windows ან Mac-ისთვის.</li>
+                        <li><strong>ინსტალაცია:</strong> გაშვით გადმოწერილი ფაილი და მიჰყევით სტანდარტულ ნაბიჯებს (Next -> Finish).</li>
+                        <li><strong>სამუშაო საქაღალდის შექმნა:</strong> 
+                            <ul>
+                                <li>სამუშაო მაგიდაზე (Desktop) დააჭირეთ მაუსის მარჯვენა ღილაკს.</li>
+                                <li>აირჩიეთ <strong>New -> Folder</strong> (ახალი საქაღალდე).</li>
+                                <li>დაარქვით სახელი: <code>chemistry-app</code>.</li>
+                            </ul>
+                        </li>
+                        <li><strong>საქაღალდის გახსნა პროგრამაში:</strong> გახსენით Antigravity, აირჩიეთ Menu -> <code>File -> Open Folder</code> და აირჩიეთ თქვენი შექმნილი <code>chemistry-app</code> საქაღალდე.</li>
+                    </ol>
+                </div>
+
+                <div class="tip-badge">
+                    <i class="fa-solid fa-circle-info"></i> ყოველთვის შეინახეთ პროექტის ყველა ფაილი ერთ კონკრეტულ საქაღალდეში!
+                </div>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="step-card" id="step2">
+                <h2><i class="fa-solid fa-robot" style="color: var(--accent-orange);"></i> 2. Gemini AI-სთვის დავალების მიცემა (Prompting)</h2>
+                <p class="step-description">
+                    ახლა გადავდივართ Gemini AI-ზე (gemini.google.com). ჩვენ მას ვთხოვთ, დაგვიწეროს სრული HTML, CSS და JavaScript კოდი ქიმიური რეაქციის სიჩქარის სიმულაციისთვის.
+                </p>
+
+                <div class="instruction-box">
+                    <h3><i class="fa-solid fa-comment-dots"></i> დააკოპირეთ ეს ბრძანება (Prompt) Gemini-სთვის:</h3>
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span>Prompt Gemini AI-სთვის</span>
+                            <button class="copy-btn" onclick="copyPrompt()"><i class="fa-regular fa-copy"></i> კოპირება</button>
+                        </div>
+                        <pre id="promptText">შემიქმენი ინტერაქციული ვებ-აპლიკაცია (HTML/CSS/JS ერთ ფაილში), სადაც ნაჩვენებია ქიმიური რეაქციის სიჩქარის დამოკიდებულება ტემპერატურაზე, კონცენტრაციასა და კატალიზატორზე. აპლიკაციას ჰქონდეს სლაიდერები ამ პარამეტრების შესაცვლელად და ვიზუალური ნაწილაკების ანიმაცია, რომელიც აჩვენებს რეაქციის სიჩქარეს.</pre>
+                    </div>
+                </div>
+
+                <div class="instruction-box">
+                    <h3><i class="fa-solid fa-eye"></i> რა პასუხს მოგვცემს Gemini:</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 10px;">Gemini დააგენერირებს კოდის ბლოკს, რომელსაც ზედა მარჯვენა კუთხეში ექნება ღილაკი <strong>"Copy code"</strong>.</p>
+                </div>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="step-card" id="step3">
+                <h2><i class="fa-solid fa-file-code" style="color: var(--accent-green);"></i> 3. კოდის გადატანა Antigravity-ში და გაშვება</h2>
+                <p class="step-description">
+                    მიღებული კოდი უნდა ჩავსვათ Antigravity-ში შექმნილ ახალ ფაილში.
+                </p>
+
+                <div class="instruction-box">
+                    <h3><i class="fa-solid fa-terminal"></i> მოქმედებების თანმიმდევრობა:</h3>
+                    <ol class="instruction-list">
+                        <li>Antigravity-ში დააჭირეთ <code>Ctrl + N</code> (ახალი ფაილი).</li>
+                        <li>ჩასვით დაკოპირებული კოდი (<code>Ctrl + V</code>).</li>
+                        <li>დააჭირეთ <code>Ctrl + S</code> (შენახვა) და ფაილს დაარქვით <strong><code>index.html</code></strong>.</li>
+                        <li>გახსენით საქაღალდე <code>chemistry-app</code> და ორჯერ დააწკაპუნეთ <code>index.html</code>-ს. აპლიკაცია გაიხსნება ბრაუზერში!</li>
+                    </ol>
+                </div>
+
+                <h3><i class="fa-solid fa-laptop-code"></i> შექმნილი აპლიკაციის ინტერაქციული სიმულაცია (Preview):</h3>
+                
+                <!-- Embedded Interactive Demo -->
+                <div class="demo-window">
+                    <div class="demo-bar">
+                        <div class="circle circle-red"></div>
+                        <div class="circle circle-yellow"></div>
+                        <div class="circle circle-green"></div>
+                        <span style="font-size: 0.8rem; color: #64748b; margin-left: 10px;">chemistry-app / index.html</span>
+                    </div>
+                    <div class="demo-body">
+                        <div class="chem-app">
+                            <h3 style="margin-bottom: 15px; color: #0f172a;">ქიმიური რეაქციის სიჩქარის სიმულატორი</h3>
+                            
+                            <div class="chem-controls">
+                                <div class="control-group">
+                                    <label>ტემპერატურა (°C): <span id="tempVal">25</span></label>
+                                    <input type="range" id="temp" min="0" max="100" value="25" oninput="updateSim()">
+                                </div>
+                                <div class="control-group">
+                                    <label>კონცენტრაცია (M): <span id="concVal">1.0</span></label>
+                                    <input type="range" id="conc" min="0.1" max="3" step="0.1" value="1.0" oninput="updateSim()">
+                                </div>
+                                <div class="control-group">
+                                    <label>კატალიზატორი:</label>
+                                    <select id="catalyst" onchange="updateSim()" style="width:100%; padding: 6px; border-radius: 4px;">
+                                        <option value="1">გარეშე (ნორმალური)</option>
+                                        <option value="2.5">კატალიზატორით (სწრაფი)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="sim-box" id="simBox">
+                                <span style="color: #64748b; font-size: 0.9rem;" id="speedLabel">რეაქციის სიჩქარე: ნორმალური</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 4 -->
+            <div class="step-card" id="step4">
+                <h2><i class="fa-brands fa-github" style="color: #fff;"></i> 4. GitHub-ზე დარეგისტრირება</h2>
+                <p class="step-description">
+                    იმისათვის, რომ აპლიკაცია ინტერნეტში გახდეს ხელმისაწვდომი ყველასთვის, გამოვიყენებთ GitHub-ს.
+                </p>
+
+                <div class="instruction-box">
+                    <h3><i class="fa-solid fa-user-plus"></i> რეგისტრაციის ნაბიჯები:</h3>
+                    <ol class="instruction-list">
+                        <li>გადადით საიტზე: <a href="https://github.com" target="_blank" style="color: var(--secondary);">github.com</a>.</li>
+                        <li>დააჭირეთ ღილაკს <strong>"Sign up"</strong>.</li>
+                        <li>შეიყვანეთ თქვენი ელ-ფოსტა, შექმენით პაროლი და მომხმარებლის სახელი (Username).</li>
+                        <li>გაიარეთ უსაფრთხოების მარტივი შემოწმება (Captcha) და დააჭირეთ <strong>Create account</strong>.</li>
+                        <li>შეამოწმეთ ელ-ფოსტა და ჩასვით დადასტურების კოდი.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- STEP 5 -->
+            <div class="step-card" id="step5">
+                <h2><i class="fa-solid fa-globe" style="color: var(--accent-green);"></i> 5. ფაილების ატვირთვა და GitHub Pages-ის ჩართვა</h2>
+                <p class="step-description">
+                    ეს არის ფინალური ეტაპი! ატვირთეთ თქვენი `index.html` ფაილი და მიიღეთ ცოცხალი ბმული.
+                </p>
+
+                <div class="instruction-box">
+                    <h3><i class="fa-solid fa-cloud-arrow-up"></i> ნაბიჯები საიტის გასაშვებად:</h3>
+                    <ol class="instruction-list">
+                        <li>GitHub-ზე ავტორიზაციის შემდეგ დააჭირეთ <strong>"+"</strong> ნიშანს (ზედა მარჯვენა კუთხეში) -> <strong>New repository</strong>.</li>
+                        <li><strong>Repository name:</strong> ჩაწერთ მაგალითად: <code>chemistry-speed-app</code>.</li>
+                        <li>მონიშნეთ <strong>Public</strong> და დააჭირეთ <strong>Create repository</strong>.</li>
+                        <li>გახსნილ გვერდზე იპოვეთ ბმული: <strong>"uploading an existing file"</strong>.</li>
+                        <li>გადმოათრიეთ თქვენი <code>index.html</code> ფაილი კომპიუტერიდან და დააჭირეთ <strong>Commit changes</strong>.</li>
+                        <li><strong>GitHub Pages-ის ჩართვა:</strong>
+                            <ul>
+                                <li>გადადით რეპოზიტორიის ჩანართში <strong>Settings</strong> -> <strong>Pages</strong> (მარცხენა მენიუში).</li>
+                                <li>Branch სექციაში <code>None</code>-ის ნაცვლად აირჩიეთ <strong>main</strong> (ან master) და დააჭირეთ <strong>Save</strong>.</li>
+                            </ul>
+                        </li>
+                        <li>დაელოდეთ 1-2 წუთი! გვერდის დარეფრეშების შემდეგ გამოჩნდება მწვანე შეტყობინება თქვენი საიტის ბმულით! (მაგ: <code>https://username.github.io/chemistry-speed-app/</code>).</li>
+                    </ol>
+                </div>
+
+                <div class="tip-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border-color: rgba(16, 185, 129, 0.3);">
+                    <i class="fa-solid fa-circle-check"></i> გილოცავთ! თქვენი აპლიკაცია უკვე ხელმისაწვდომია მთელ მსოფლიოში!
+                </div>
+            </div>
+
+            <!-- Bottom Controls -->
+            <div class="controls">
+                <button class="btn btn-secondary" id="prevBtn" onclick="changeStep(-1)" disabled>
+                    <i class="fa-solid fa-arrow-left"></i> უკან
+                </button>
+                <button class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">
+                    შემდეგი <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 5;
+
+        function updateUI() {
+            // Update Navigation list
+            document.querySelectorAll('.nav-item').forEach((item, index) => {
+                item.classList.remove('active');
+                if (index + 1 === currentStep) {
+                    item.classList.add('active');
+                }
+                if (index + 1 < currentStep) {
+                    item.classList.add('completed');
+                } else {
+                    item.classList.remove('completed');
+                }
+            });
+
+            // Update Step Cards
+            document.querySelectorAll('.step-card').forEach((card, index) => {
+                card.classList.remove('active');
+                if (index + 1 === currentStep) {
+                    card.classList.add('active');
+                }
+            });
+
+            // Update Progress Bar
+            const progressPercent = (currentStep / totalSteps) * 100;
+            document.getElementById('progressBar').style.width = progressPercent + '%';
+
+            // Update Header Text
+            document.getElementById('currentStepTitle').innerText = `ეტაპი ${currentStep} / ${totalSteps}`;
+
+            // Controls buttons
+            document.getElementById('prevBtn').disabled = currentStep === 1;
+            
+            const nextBtn = document.getElementById('nextBtn');
+            if (currentStep === totalSteps) {
+                nextBtn.innerHTML = 'დასრულება <i class="fa-solid fa-check"></i>';
+                nextBtn.style.background = 'var(--accent-green)';
+            } else {
+                nextBtn.innerHTML = 'შემდეგი <i class="fa-solid fa-arrow-right"></i>';
+                nextBtn.style.background = 'var(--primary)';
+            }
+        }
+
+        function changeStep(delta) {
+            currentStep += delta;
+            if (currentStep < 1) currentStep = 1;
+            if (currentStep > totalSteps) currentStep = totalSteps;
+            updateUI();
+        }
+
+        function goToStep(step) {
+            currentStep = step;
+            updateUI();
+        }
+
+        function copyPrompt() {
+            const text = document.getElementById('promptText').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Prompt-ი წარმატებით დაკოპირდა!');
+            });
+        }
+
+        // Interactive Simulation Logic for Step 3
+        function updateSim() {
+            const temp = document.getElementById('temp').value;
+            const conc = document.getElementById('conc').value;
+            const cat = document.getElementById('catalyst').value;
+
+            document.getElementById('tempVal').innerText = temp;
+            document.getElementById('concVal').innerText = conc;
+
+            const speedScore = (parseFloat(temp) + (parseFloat(conc) * 30)) * parseFloat(cat);
+            const label = document.getElementById('speedLabel');
+            
+            if (speedScore < 50) {
+                label.innerText = "რეაქციის სიჩქარე: დაბალი 🐢";
+                label.style.color = "#94a3b8";
+            } else if (speedScore < 120) {
+                label.innerText = "რეაქციის სიჩქარე: საშუალო ⚡";
+                label.style.color = "#38bdf8";
+            } else {
+                label.innerText = "რეაქციის სიჩქარე: ძლიერი / სწრაფი 🚀";
+                label.style.color = "#4ade80";
+            }
+        }
+    </script>
+</body>
+</html>
